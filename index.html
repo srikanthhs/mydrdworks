@@ -591,83 +591,73 @@
 
 <script>
 /* ═══════════════════════════════════════════════
-   FIREBASE — REST API + SSE (no SDK required)
+   FIREBASE — REST API + POLLING (no SDK required)
 ═══════════════════════════════════════════════ */
-const FB_URL  = 'https://mydrdworks-default-rtdb.asia-southeast1.firebasedatabase.app';
-const FB_AUTH = 'AIzaSyBTwI8hLZYCNvRyzFM9FEe3VuxOBaWYM5s'; // web API key for auth param
+const FB_URL = 'https://mydrdworks-default-rtdb.asia-southeast1.firebasedatabase.app';
 
-let fbSSE       = null;   // EventSource for real-time works stream
-let fbMetaSSE   = null;   // EventSource for meta stream
-let fbConnected = false;
+let fbConnected    = false;
+let fbPollTimer    = null;
+let fbLastEtag     = null;   // track changes — only re-render when data actually changed
+const FB_POLL_MS   = 30000;  // poll every 30 seconds
 
 /* ── helpers ── */
-function fbGet(path) {
-  return fetch(`${FB_URL}/${path}.json`).then(r => r.json());
+async function fbGet(path) {
+  const res = await fetch(`${FB_URL}/${path}.json`);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
 }
-function fbPut(path, data) {
-  return fetch(`${FB_URL}/${path}.json`, {
+
+async function fbPut(path, data) {
+  const res = await fetch(`${FB_URL}/${path}.json`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data)
-  }).then(r => r.json());
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
 }
 
-/* ── SSE real-time listener ── */
+/* ── apply fetched works data ── */
+function applyWorksData(val) {
+  if (!val) { setFbStatus('empty', 'DB empty — push data'); return; }
+  const rows   = Array.isArray(val) ? val : Object.values(val);
+  const mapped = rows.filter(Boolean).map((r, i) => {
+    const m = mapRow(r);
+    if (!m.sl) m.sl = i + 1;
+    return m;
+  });
+  allData      = mapped.map((r, i) => ({ ...r, _id: i }));
+  filteredData = [...allData];
+  populateFilters();
+  renderAll();
+  updateNavStats();
+  updateRecordCount();
+  fbConnected = true;
+  setFbStatus('live', `${allData.length} works · synced`);
+}
+
+/* ── single poll cycle ── */
+async function fbPoll() {
+  try {
+    // Fetch works + meta in parallel
+    const [val, meta] = await Promise.all([
+      fbGet('works'),
+      fbGet('meta').catch(() => null)
+    ]);
+    applyWorksData(val);
+    if (meta && meta.lastUpdated) applyMetaTimestamp(meta.lastUpdated);
+  } catch(e) {
+    fbConnected = false;
+    setFbStatus('offline', 'Offline — retrying…');
+    console.warn('Firebase poll error:', e.message);
+  }
+}
+
+/* ── start polling ── */
 function initFirebase() {
   setFbStatus('connecting', 'Connecting…');
-
-  // ── works stream ──
-  fbSSE = new EventSource(`${FB_URL}/works.json`);
-
-  fbSSE.addEventListener('put', e => {
-    try {
-      const payload = JSON.parse(e.data);
-      const val = payload.data;
-      if (val) {
-        const rows = Array.isArray(val) ? val : Object.values(val);
-        const mapped = rows.filter(Boolean).map((r, i) => {
-          const m = mapRow(r);
-          if (!m.sl) m.sl = i + 1;
-          return m;
-        });
-        allData      = mapped.map((r, i) => ({ ...r, _id: i }));
-        filteredData = [...allData];
-        populateFilters();
-        renderAll();
-        updateNavStats();
-        updateRecordCount();
-        fbConnected = true;
-        setFbStatus('live', `${allData.length} works · live`);
-      } else {
-        fbConnected = true;
-        setFbStatus('empty', 'DB empty — push data');
-      }
-    } catch(err) { console.error('SSE parse error:', err); }
-  });
-
-  fbSSE.addEventListener('patch', e => {
-    // Partial update — just do a fresh pull to keep things simple
-    try {
-      const payload = JSON.parse(e.data);
-      if (payload.data) pullFromFirebase(true);
-    } catch(err) {}
-  });
-
-  fbSSE.onerror = () => {
-    fbConnected = false;
-    setFbStatus('offline', 'Reconnecting…');
-  };
-
-  // ── meta stream (lastUpdated timestamp) ──
-  fbMetaSSE = new EventSource(`${FB_URL}/meta.json`);
-
-  fbMetaSSE.addEventListener('put', e => {
-    try {
-      const payload = JSON.parse(e.data);
-      const meta = payload.data;
-      if (meta && meta.lastUpdated) applyMetaTimestamp(meta.lastUpdated);
-    } catch(err) {}
-  });
+  fbPoll();                                          // immediate first fetch
+  fbPollTimer = setInterval(fbPoll, FB_POLL_MS);    // then every 30 s
 }
 
 function applyMetaTimestamp(iso) {
@@ -720,24 +710,16 @@ async function pushToFirebase() {
 async function pullFromFirebase(silent = false) {
   if (!silent) showToast('Pulling from Firebase…');
   try {
-    const val = await fbGet('works');
-    if (!val) { if (!silent) showToast('Firebase DB is empty'); return; }
-    const rows = Array.isArray(val) ? val : Object.values(val);
-    const mapped = rows.filter(Boolean).map((r, i) => {
-      const m = mapRow(r);
-      if (!m.sl) m.sl = i + 1;
-      return m;
-    });
-    allData      = mapped.map((r, i) => ({ ...r, _id: i }));
-    filteredData = [...allData];
-    populateFilters();
-    renderAll();
-    updateNavStats();
-    updateRecordCount();
-    // Also refresh meta timestamp
-    const meta = await fbGet('meta');
+    const [val, meta] = await Promise.all([
+      fbGet('works'),
+      fbGet('meta').catch(() => null)
+    ]);
+    applyWorksData(val);
     if (meta && meta.lastUpdated) applyMetaTimestamp(meta.lastUpdated);
-    if (!silent) showToast(`✓ Pulled ${mapped.length} works from Firebase`);
+    if (!silent) showToast(`✓ Pulled ${allData.length} works from Firebase`);
+    // Reset poll timer so we don't double-fire immediately after manual pull
+    clearInterval(fbPollTimer);
+    fbPollTimer = setInterval(fbPoll, FB_POLL_MS);
   } catch(e) {
     if (!silent) showToast('❌ Pull failed: ' + e.message);
   }
@@ -1511,9 +1493,9 @@ function showToast(msg) {
 }
 
 function refreshView() {
-  if(webAppUrl) fetchFromWebApp();
+  if(fbConnected || !allData.length) pullFromFirebase();
   else renderAll();
-  showToast('View refreshed');
+  showToast('Refreshing…');
 }
 
 function showAppsScriptModal() {
