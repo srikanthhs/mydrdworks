@@ -1,0 +1,1558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Works Tracker · Mayiladuthurai District</title>
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Roboto:wght@300;400;500&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+  /* ── MD3 Design Tokens ─────────────────────────── */
+  :root {
+    --md-primary: #1565C0;
+    --md-primary-container: #D3E4FF;
+    --md-on-primary: #ffffff;
+    --md-on-primary-container: #001C3B;
+    --md-secondary: #00695C;
+    --md-secondary-container: #B2DFDB;
+    --md-on-secondary: #ffffff;
+    --md-tertiary: #E65100;
+    --md-tertiary-container: #FFE0CC;
+    --md-surface: #F8F9FA;
+    --md-surface-variant: #E8EDF1;
+    --md-surface-container: #EAEFF5;
+    --md-surface-container-high: #DDE3EA;
+    --md-on-surface: #1A1C1E;
+    --md-on-surface-variant: #42474E;
+    --md-outline: #72787E;
+    --md-outline-variant: #C2C7CE;
+    --md-error: #B3261E;
+    --md-error-container: #F9DEDC;
+    --md-shadow: 0 1px 3px rgba(0,0,0,.12), 0 1px 2px rgba(0,0,0,.08);
+    --md-shadow-2: 0 2px 8px rgba(0,0,0,.12), 0 1px 4px rgba(0,0,0,.08);
+    --md-shadow-3: 0 4px 16px rgba(0,0,0,.12), 0 2px 8px rgba(0,0,0,.08);
+    --md-radius-sm: 8px;
+    --md-radius-md: 12px;
+    --md-radius-lg: 16px;
+    --md-radius-xl: 28px;
+    --nav-width: 256px;
+    --header-height: 64px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Roboto', sans-serif; background: var(--md-surface); color: var(--md-on-surface); height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+
+  /* ── Top App Bar ── */
+  .app-bar {
+    height: var(--header-height);
+    background: var(--md-primary);
+    color: var(--md-on-primary);
+    display: flex; align-items: center; gap: 16px;
+    padding: 0 24px;
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    box-shadow: var(--md-shadow-2);
+  }
+  .app-bar-logo { width: 36px; height: 36px; background: rgba(255,255,255,0.15); border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+  .app-bar-title { font-family: 'Google Sans', sans-serif; font-size: 20px; font-weight: 500; flex: 1; }
+  .app-bar-subtitle { font-size: 12px; opacity: 0.8; }
+  .app-bar-actions { display: flex; gap: 8px; }
+  .icon-btn { width: 40px; height: 40px; border: none; background: rgba(255,255,255,0.1); border-radius: 50%; cursor: pointer; color: white; display: flex; align-items: center; justify-content: center; transition: background 0.2s; }
+  .icon-btn:hover { background: rgba(255,255,255,0.2); }
+  .badge { background: var(--md-tertiary); color: white; font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 10px; position: absolute; top: 6px; right: 6px; }
+
+  /* ── Layout ── */
+  .layout { display: flex; margin-top: var(--header-height); height: calc(100vh - var(--header-height)); }
+
+  /* ── Navigation Rail ── */
+  .nav-rail {
+    width: var(--nav-width); background: var(--md-surface-container);
+    border-right: 1px solid var(--md-outline-variant);
+    display: flex; flex-direction: column;
+    overflow-y: auto; flex-shrink: 0;
+  }
+  .nav-section-label { font-size: 11px; font-weight: 500; color: var(--md-on-surface-variant); text-transform: uppercase; letter-spacing: 0.8px; padding: 16px 16px 8px; }
+  .nav-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 16px; cursor: pointer; border-radius: 0;
+    transition: background 0.15s; border-left: 3px solid transparent;
+    color: var(--md-on-surface-variant); font-size: 14px; font-weight: 500;
+    user-select: none;
+  }
+  .nav-item:hover { background: var(--md-surface-container-high); }
+  .nav-item.active { background: var(--md-primary-container); color: var(--md-primary); border-left-color: var(--md-primary); }
+  .nav-item .material-symbols-outlined { font-size: 22px; }
+  .nav-divider { height: 1px; background: var(--md-outline-variant); margin: 8px 16px; }
+  .nav-stats { padding: 12px 16px; }
+  .nav-stat-chip { background: var(--md-primary-container); color: var(--md-on-primary-container); font-size: 12px; font-weight: 500; padding: 4px 10px; border-radius: 16px; display: inline-block; margin: 2px 2px; }
+
+  /* ── Main Content ── */
+  .main-content { flex: 1; overflow-y: auto; padding: 24px; }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* ── Cards ── */
+  .card { background: white; border-radius: var(--md-radius-lg); box-shadow: var(--md-shadow); overflow: hidden; }
+  .card-header { padding: 16px 20px 12px; border-bottom: 1px solid var(--md-outline-variant); display: flex; align-items: center; gap: 10px; }
+  .card-title { font-family: 'Google Sans', sans-serif; font-size: 16px; font-weight: 500; }
+  .card-subtitle { font-size: 12px; color: var(--md-on-surface-variant); margin-top: 2px; }
+  .card-body { padding: 16px 20px; }
+
+  /* ── Summary Chips (Dashboard) ── */
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 20px; }
+  .stat-card {
+    background: white; border-radius: var(--md-radius-lg);
+    padding: 20px; box-shadow: var(--md-shadow);
+    display: flex; flex-direction: column; gap: 8px;
+    border-top: 4px solid var(--accent, var(--md-primary));
+    transition: box-shadow 0.2s;
+  }
+  .stat-card:hover { box-shadow: var(--md-shadow-2); }
+  .stat-label { font-size: 12px; color: var(--md-on-surface-variant); font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
+  .stat-value { font-family: 'Google Sans', sans-serif; font-size: 28px; font-weight: 700; color: var(--md-on-surface); }
+  .stat-sub { font-size: 12px; color: var(--md-on-surface-variant); }
+  .stat-icon { font-size: 28px; color: var(--accent, var(--md-primary)); }
+
+  /* ── Charts Row ── */
+  .charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+  .chart-wrap { position: relative; height: 240px; }
+
+  /* ── Filter Bar ── */
+  .filter-bar { display: flex; flex-wrap: wrap; gap: 12px; padding: 16px; background: var(--md-surface-container); border-radius: var(--md-radius-md); margin-bottom: 16px; align-items: flex-end; }
+  .filter-group { display: flex; flex-direction: column; gap: 4px; }
+  .filter-label { font-size: 11px; color: var(--md-on-surface-variant); font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
+  .md-input { height: 40px; border: 1.5px solid var(--md-outline-variant); border-radius: var(--md-radius-sm); padding: 0 12px; font-size: 14px; font-family: 'Roboto', sans-serif; background: white; color: var(--md-on-surface); outline: none; min-width: 150px; transition: border-color 0.2s; }
+  .md-input:focus { border-color: var(--md-primary); }
+  select.md-input { cursor: pointer; }
+  .md-btn { height: 40px; border: none; border-radius: var(--md-radius-sm); padding: 0 20px; font-size: 14px; font-weight: 500; font-family: 'Roboto', sans-serif; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: box-shadow 0.2s, filter 0.2s; }
+  .md-btn-filled { background: var(--md-primary); color: white; }
+  .md-btn-filled:hover { filter: brightness(1.1); box-shadow: var(--md-shadow); }
+  .md-btn-tonal { background: var(--md-primary-container); color: var(--md-on-primary-container); }
+  .md-btn-tonal:hover { filter: brightness(0.95); }
+  .md-btn-outlined { background: transparent; color: var(--md-primary); border: 1.5px solid var(--md-outline-variant); }
+  .md-btn-outlined:hover { background: var(--md-primary-container); }
+
+  /* ── Data Table ── */
+  .table-wrap { overflow-x: auto; overflow-y: auto; max-height: calc(100vh - 360px); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead { position: sticky; top: 0; z-index: 5; }
+  th { background: var(--md-primary); color: white; padding: 10px 12px; text-align: left; font-weight: 500; font-size: 12px; text-transform: uppercase; letter-spacing: 0.4px; white-space: nowrap; cursor: pointer; user-select: none; }
+  th:hover { background: #1976D2; }
+  th .sort-icon { font-size: 14px; vertical-align: middle; opacity: 0.7; }
+  td { padding: 9px 12px; border-bottom: 1px solid var(--md-outline-variant); vertical-align: middle; white-space: nowrap; }
+  tr:hover td { background: var(--md-surface-container); }
+  tr:last-child td { border-bottom: none; }
+  .td-num { text-align: right; font-variant-numeric: tabular-nums; }
+
+  /* ── Stage Chips ── */
+  .stage-chip { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 500; }
+  .stage-TS { background: #E3F2FD; color: #1565C0; }
+  .stage-Work-in-Progress { background: #FFF8E1; color: #F57F17; }
+  .stage-Completed { background: #E8F5E9; color: #2E7D32; }
+  .stage-AS { background: #FBE9E7; color: #BF360C; }
+  .stage-Grounded { background: #F3E5F5; color: #6A1B9A; }
+  .stage-default { background: var(--md-surface-container-high); color: var(--md-on-surface-variant); }
+
+  /* ── Pagination ── */
+  .pagination { display: flex; align-items: center; gap: 8px; padding: 12px 0; justify-content: flex-end; }
+  .page-btn { width: 32px; height: 32px; border: 1.5px solid var(--md-outline-variant); border-radius: 8px; background: white; cursor: pointer; font-size: 13px; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
+  .page-btn:hover { background: var(--md-primary-container); border-color: var(--md-primary); }
+  .page-btn.active { background: var(--md-primary); color: white; border-color: var(--md-primary); }
+  .page-info { font-size: 13px; color: var(--md-on-surface-variant); }
+
+  /* ── Import Panel ── */
+  .import-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .drop-zone {
+    border: 2px dashed var(--md-outline-variant); border-radius: var(--md-radius-lg);
+    padding: 40px 20px; text-align: center; cursor: pointer;
+    transition: all 0.2s; background: white;
+  }
+  .drop-zone:hover, .drop-zone.drag-over { border-color: var(--md-primary); background: var(--md-primary-container); }
+  .drop-zone .material-symbols-outlined { font-size: 48px; color: var(--md-primary); margin-bottom: 12px; display: block; }
+  .drop-zone-title { font-family: 'Google Sans', sans-serif; font-size: 16px; font-weight: 500; margin-bottom: 6px; }
+  .drop-zone-sub { font-size: 13px; color: var(--md-on-surface-variant); }
+  .gs-panel { background: white; border-radius: var(--md-radius-lg); padding: 24px; box-shadow: var(--md-shadow); }
+  .code-block { background: #263238; color: #ECEFF1; font-family: 'Roboto Mono', monospace; font-size: 12px; padding: 16px; border-radius: var(--md-radius-sm); overflow-x: auto; line-height: 1.6; white-space: pre; margin: 12px 0; }
+  .input-group { display: flex; gap: 8px; margin-top: 12px; }
+  .input-group .md-input { flex: 1; }
+  .success-banner { background: #E8F5E9; color: #2E7D32; border-radius: var(--md-radius-sm); padding: 10px 14px; font-size: 13px; display: none; align-items: center; gap: 8px; margin-top: 10px; }
+  .success-banner.show { display: flex; }
+  .error-banner { background: var(--md-error-container); color: var(--md-error); border-radius: var(--md-radius-sm); padding: 10px 14px; font-size: 13px; display: none; align-items: center; gap: 8px; margin-top: 10px; }
+  .error-banner.show { display: flex; }
+
+  /* ── Date Review ── */
+  .date-summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
+  .date-stat { background: white; padding: 14px 16px; border-radius: var(--md-radius-md); box-shadow: var(--md-shadow); }
+  .date-stat-num { font-family: 'Google Sans', sans-serif; font-size: 22px; font-weight: 700; color: var(--md-primary); }
+  .date-stat-label { font-size: 12px; color: var(--md-on-surface-variant); margin-top: 2px; }
+  .timeline-entry { display: flex; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--md-outline-variant); align-items: flex-start; }
+  .timeline-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--md-primary); margin-top: 4px; flex-shrink: 0; }
+  .timeline-date { font-size: 12px; color: var(--md-on-surface-variant); min-width: 80px; }
+  .timeline-title { font-size: 13px; font-weight: 500; }
+  .timeline-sub { font-size: 12px; color: var(--md-on-surface-variant); }
+
+  /* ── Toast ── */
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px); background: #323232; color: white; padding: 12px 24px; border-radius: 24px; font-size: 14px; z-index: 999; transition: transform 0.3s ease; box-shadow: var(--md-shadow-3); }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* ── Modal ── */
+  .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 200; display: none; align-items: center; justify-content: center; }
+  .modal-backdrop.open { display: flex; }
+  .modal { background: white; border-radius: var(--md-radius-xl); padding: 28px; max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto; box-shadow: var(--md-shadow-3); }
+  .modal-title { font-family: 'Google Sans', sans-serif; font-size: 20px; font-weight: 500; margin-bottom: 16px; }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--md-surface-container); }
+  ::-webkit-scrollbar-thumb { background: var(--md-outline-variant); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--md-outline); }
+
+  /* ── Page Title ── */
+  .page-title { font-family: 'Google Sans', sans-serif; font-size: 22px; font-weight: 500; margin-bottom: 4px; }
+  .page-subtitle { font-size: 13px; color: var(--md-on-surface-variant); margin-bottom: 20px; }
+  .section-title { font-family: 'Google Sans', sans-serif; font-size: 15px; font-weight: 500; margin: 16px 0 10px; }
+
+  /* ── Chip Group ── */
+  .chip-group { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { padding: 5px 12px; border-radius: 16px; font-size: 12px; font-weight: 500; border: 1.5px solid var(--md-outline-variant); cursor: pointer; transition: all 0.15s; background: white; }
+  .chip.active { background: var(--md-primary); color: white; border-color: var(--md-primary); }
+  .chip:hover { border-color: var(--md-primary); color: var(--md-primary); }
+
+  /* ── Empty State ── */
+  .empty-state { text-align: center; padding: 60px 20px; color: var(--md-on-surface-variant); }
+  .empty-state .material-symbols-outlined { font-size: 64px; margin-bottom: 16px; opacity: 0.4; }
+  .empty-state h3 { font-family: 'Google Sans', sans-serif; font-size: 18px; margin-bottom: 8px; }
+
+  @media (max-width: 900px) {
+    .nav-rail { width: 64px; }
+    .nav-item span:not(.material-symbols-outlined) { display: none; }
+    .nav-section-label { display: none; }
+    .charts-row { grid-template-columns: 1fr; }
+    .import-grid { grid-template-columns: 1fr; }
+    .date-summary-grid { grid-template-columns: repeat(2,1fr); }
+  }
+</style>
+</head>
+<body>
+
+<!-- Top App Bar -->
+<header class="app-bar">
+  <div class="app-bar-logo"><span class="material-symbols-outlined" style="font-size:20px">terrain</span></div>
+  <div style="flex:1">
+    <div class="app-bar-title">Works Tracker</div>
+    <div class="app-bar-subtitle">Mayiladuthurai District · Rural Development</div>
+  </div>
+  <div class="app-bar-actions" style="display:flex;align-items:center;gap:8px;">
+    <span id="record-count" style="font-size:12px;opacity:0.8;background:rgba(255,255,255,0.15);padding:4px 10px;border-radius:12px;"></span>
+    <span id="firebase-sync-badge" style="font-size:11px;background:rgba(255,255,255,0.12);padding:4px 10px;border-radius:12px;display:flex;align-items:center;gap:5px;cursor:default" title="Firebase Realtime Sync">
+      <span id="fb-dot" style="width:7px;height:7px;border-radius:50%;background:#888;display:inline-block;transition:background 0.4s"></span>
+      <span id="fb-status-text" style="opacity:0.85">Connecting…</span>
+    </span>
+    <button class="icon-btn" title="Export" onclick="exportData()"><span class="material-symbols-outlined" style="font-size:20px">download</span></button>
+    <button class="icon-btn" title="Push current data to Firebase" onclick="pushToFirebase()"><span class="material-symbols-outlined" style="font-size:20px">cloud_upload</span></button>
+    <button class="icon-btn" title="Refresh / Pull from Firebase" onclick="refreshView()"><span class="material-symbols-outlined" style="font-size:20px">refresh</span></button>
+    <button class="icon-btn" title="Apps Script" onclick="showAppsScriptModal()"><span class="material-symbols-outlined" style="font-size:20px">code</span></button>
+  </div>
+</header>
+
+<div class="layout">
+  <!-- Navigation Rail -->
+  <nav class="nav-rail">
+    <div class="nav-section-label">Main</div>
+    <div class="nav-item active" onclick="showTab('dashboard', this)">
+      <span class="material-symbols-outlined">dashboard</span><span>Dashboard</span>
+    </div>
+    <div class="nav-item" onclick="showTab('register', this)">
+      <span class="material-symbols-outlined">table_view</span><span>Works Register</span>
+    </div>
+    <div class="nav-item" onclick="showTab('date-review', this)">
+      <span class="material-symbols-outlined">calendar_month</span><span>Date Review</span>
+    </div>
+    <div class="nav-divider"></div>
+    <div class="nav-section-label">Data</div>
+    <div class="nav-item" onclick="showTab('import', this)">
+      <span class="material-symbols-outlined">upload_file</span><span>Import Data</span>
+    </div>
+    <div class="nav-item" onclick="showTab('appscript', this)">
+      <span class="material-symbols-outlined">integration_instructions</span><span>Apps Script</span>
+    </div>
+    <div class="nav-divider"></div>
+    <div class="nav-section-label" style="padding-top:8px">Summary</div>
+    <div class="nav-stats" id="nav-stats"></div>
+  </nav>
+
+  <!-- Main -->
+  <main class="main-content">
+
+    <!-- Dashboard Tab -->
+    <div class="tab-panel active" id="tab-dashboard">
+      <div class="page-title">District Works Dashboard</div>
+      <div class="page-subtitle" id="dash-subtitle">Showing all works · Last updated: —</div>
+      <div class="stats-grid" id="stats-grid"></div>
+      <div class="charts-row">
+        <div class="card">
+          <div class="card-header"><span class="material-symbols-outlined" style="color:var(--md-primary)">bar_chart</span><div><div class="card-title">Works by Stage</div><div class="card-subtitle">Current progress distribution</div></div></div>
+          <div class="card-body"><div class="chart-wrap"><canvas id="stageChart"></canvas></div></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="material-symbols-outlined" style="color:var(--md-secondary)">pie_chart</span><div><div class="card-title">Works by Block</div><div class="card-subtitle">Block-wise distribution</div></div></div>
+          <div class="card-body"><div class="chart-wrap"><canvas id="blockChart"></canvas></div></div>
+        </div>
+      </div>
+      <div class="charts-row">
+        <div class="card">
+          <div class="card-header"><span class="material-symbols-outlined" style="color:var(--md-tertiary)">stacked_bar_chart</span><div><div class="card-title">Scheme-wise Works</div></div></div>
+          <div class="card-body"><div class="chart-wrap"><canvas id="schemeChart"></canvas></div></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="material-symbols-outlined" style="color:#6A1B9A">trending_up</span><div><div class="card-title">Financial Summary</div><div class="card-subtitle">AS Value vs TS Value vs Spent</div></div></div>
+          <div class="card-body"><div class="chart-wrap"><canvas id="finChart"></canvas></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Works Register Tab -->
+    <div class="tab-panel" id="tab-register">
+      <div class="page-title">Works Register</div>
+      <div class="page-subtitle">Full list of all development works with filter & sort</div>
+      <div class="filter-bar">
+        <div class="filter-group">
+          <div class="filter-label">Search</div>
+          <input class="md-input" id="search-input" placeholder="Work name, ID, village…" oninput="applyFilters()" style="min-width:220px">
+        </div>
+        <div class="filter-group">
+          <div class="filter-label">Block</div>
+          <select class="md-input" id="filter-block" onchange="applyFilters()"><option value="">All Blocks</option></select>
+        </div>
+        <div class="filter-group">
+          <div class="filter-label">Stage</div>
+          <select class="md-input" id="filter-stage" onchange="applyFilters()"><option value="">All Stages</option></select>
+        </div>
+        <div class="filter-group">
+          <div class="filter-label">Scheme</div>
+          <select class="md-input" id="filter-scheme" onchange="applyFilters()"><option value="">All Schemes</option></select>
+        </div>
+        <div class="filter-group">
+          <div class="filter-label">Work Group</div>
+          <select class="md-input" id="filter-group" onchange="applyFilters()"><option value="">All Groups</option></select>
+        </div>
+        <button class="md-btn md-btn-outlined" onclick="clearFilters()"><span class="material-symbols-outlined" style="font-size:16px">filter_alt_off</span> Clear</button>
+        <div style="margin-left:auto;align-self:flex-end">
+          <span id="filtered-count" style="font-size:13px;color:var(--md-on-surface-variant)"></span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="table-wrap">
+          <table id="works-table">
+            <thead>
+              <tr>
+                <th onclick="sortTable('sl')">#</th>
+                <th onclick="sortTable('block')">Block <span class="material-symbols-outlined sort-icon">unfold_more</span></th>
+                <th onclick="sortTable('vp')">Village Panchayat <span class="material-symbols-outlined sort-icon">unfold_more</span></th>
+                <th onclick="sortTable('habitation')">Habitation</th>
+                <th onclick="sortTable('workId')">Work ID</th>
+                <th onclick="sortTable('workGroup')">Work Group</th>
+                <th onclick="sortTable('workType')">Work Type</th>
+                <th onclick="sortTable('workName')">Work Name <span class="material-symbols-outlined sort-icon">unfold_more</span></th>
+                <th onclick="sortTable('asNo')">AS No.</th>
+                <th onclick="sortTable('asDate')">AS Date <span class="material-symbols-outlined sort-icon">unfold_more</span></th>
+                <th onclick="sortTable('asValue')" class="td-num">AS Value ₹ <span class="material-symbols-outlined sort-icon">unfold_more</span></th>
+                <th onclick="sortTable('tsNo')">TS No.</th>
+                <th onclick="sortTable('tsDate')">TS Date <span class="material-symbols-outlined sort-icon">unfold_more</span></th>
+                <th onclick="sortTable('tsValue')" class="td-num">TS Value ₹</th>
+                <th onclick="sortTable('scheme')">Scheme</th>
+                <th onclick="sortTable('agency')">Agency</th>
+                <th onclick="sortTable('spent')" class="td-num">Spent ₹</th>
+                <th onclick="sortTable('stage')">Stage</th>
+              </tr>
+            </thead>
+            <tbody id="works-tbody"></tbody>
+          </table>
+        </div>
+        <div style="padding:12px 16px;display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--md-outline-variant)">
+          <span id="table-info" style="font-size:13px;color:var(--md-on-surface-variant)"></span>
+          <div class="pagination" id="pagination"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Date Review Tab -->
+    <div class="tab-panel" id="tab-date-review">
+      <div class="page-title">Date-wise Review</div>
+      <div class="page-subtitle">Review works by AS Date or TS Date range</div>
+      <div class="filter-bar">
+        <div class="filter-group">
+          <div class="filter-label">Date Type</div>
+          <select class="md-input" id="date-type" onchange="applyDateFilter()">
+            <option value="as">AS Date</option>
+            <option value="ts">TS Date</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <div class="filter-label">From Date</div>
+          <input type="date" class="md-input" id="date-from" oninput="applyDateFilter()">
+        </div>
+        <div class="filter-group">
+          <div class="filter-label">To Date</div>
+          <input type="date" class="md-input" id="date-to" oninput="applyDateFilter()">
+        </div>
+        <div class="filter-group">
+          <div class="filter-label">Quick Select</div>
+          <div class="chip-group">
+            <div class="chip" onclick="setQuickDate('thisMonth')">This Month</div>
+            <div class="chip" onclick="setQuickDate('last3')">Last 3M</div>
+            <div class="chip" onclick="setQuickDate('thisYear')">This Year</div>
+            <div class="chip" onclick="setQuickDate('all')">All</div>
+          </div>
+        </div>
+        <button class="md-btn md-btn-filled" onclick="applyDateFilter()"><span class="material-symbols-outlined" style="font-size:16px">search</span> Apply</button>
+      </div>
+      <div class="date-summary-grid" id="date-summary-grid"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div class="card">
+          <div class="card-header"><span class="material-symbols-outlined" style="color:var(--md-primary)">format_list_bulleted</span><div class="card-title">Works in Period</div></div>
+          <div class="card-body" style="max-height:340px;overflow-y:auto">
+            <div id="date-timeline"></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="material-symbols-outlined" style="color:var(--md-secondary)">event_note</span><div class="card-title">Day-wise Count</div></div>
+          <div class="card-body"><div class="chart-wrap"><canvas id="dateChart"></canvas></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Import Tab -->
+    <div class="tab-panel" id="tab-import">
+      <div class="page-title">Import Data</div>
+      <div class="page-subtitle">Upload CSV / Excel or connect to Google Sheet</div>
+      <div class="import-grid">
+        <div>
+          <div class="section-title">📂 Upload File</div>
+          <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)">
+            <span class="material-symbols-outlined">upload_file</span>
+            <div class="drop-zone-title">Drop CSV or Excel file here</div>
+            <div class="drop-zone-sub">or click to browse · .xlsx .xls .csv supported</div>
+          </div>
+          <input type="file" id="file-input" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleFileInput(event)">
+          <div class="success-banner" id="upload-success">
+            <span class="material-symbols-outlined">check_circle</span>
+            <span id="upload-msg"></span>
+          </div>
+          <div class="error-banner" id="upload-error">
+            <span class="material-symbols-outlined">error</span>
+            <span id="upload-err-msg"></span>
+          </div>
+
+          <div class="section-title" style="margin-top:20px">📋 Paste CSV / JSON Data</div>
+          <textarea id="paste-input" placeholder="Paste CSV rows here (first row = headers)&#10;Sl.,Block Name,Village Panchayat Name,..." style="width:100%;height:120px;border:1.5px solid var(--md-outline-variant);border-radius:var(--md-radius-sm);padding:10px;font-size:12px;font-family:monospace;outline:none;resize:vertical"></textarea>
+          <button class="md-btn md-btn-tonal" style="margin-top:8px" onclick="parsePaste()"><span class="material-symbols-outlined" style="font-size:16px">table_chart</span> Parse & Load</button>
+
+          <div class="section-title" style="margin-top:20px">🔗 Google Sheet URL</div>
+          <div class="input-group">
+            <input class="md-input" id="gsheet-url" placeholder="Paste published Google Sheet URL or Sheet ID">
+            <button class="md-btn md-btn-filled" onclick="fetchGSheet()"><span class="material-symbols-outlined" style="font-size:16px">link</span> Fetch</button>
+          </div>
+          <div style="font-size:12px;color:var(--md-on-surface-variant);margin-top:6px">Share the sheet as "Anyone with link can view" and publish to web as CSV</div>
+        </div>
+
+        <div>
+          <div class="section-title">📊 Column Mapping</div>
+          <div class="card" style="padding:16px">
+            <div style="font-size:13px;color:var(--md-on-surface-variant);margin-bottom:10px">Expected columns in your data file. Column names are auto-detected (case-insensitive).</div>
+            <div id="col-mapping" style="font-size:12px;line-height:2"></div>
+          </div>
+
+          <div class="section-title" style="margin-top:16px">🔥 Firebase Realtime Sync</div>
+          <div class="card" style="padding:16px">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+              <span id="fb-import-dot" style="width:10px;height:10px;border-radius:50%;background:#888;flex-shrink:0;transition:background 0.4s"></span>
+              <div>
+                <div style="font-size:13px;font-weight:500" id="fb-import-status">Connecting to Firebase…</div>
+                <div style="font-size:11px;color:var(--md-on-surface-variant);margin-top:2px" id="fb-import-updated">Last updated: —</div>
+              </div>
+            </div>
+            <div style="font-size:12px;color:var(--md-on-surface-variant);margin-bottom:12px;line-height:1.6">
+              Auto-syncs with <strong>mydrdworks</strong> Firebase Realtime Database. Data pushed here is immediately available to all users of this tracker.
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button class="md-btn md-btn-filled" onclick="pushToFirebase()" style="font-size:13px">
+                <span class="material-symbols-outlined" style="font-size:16px">cloud_upload</span> Push to Firebase
+              </button>
+              <button class="md-btn md-btn-tonal" onclick="pullFromFirebase()" style="font-size:13px">
+                <span class="material-symbols-outlined" style="font-size:16px">cloud_download</span> Pull Now
+              </button>
+            </div>
+            <div style="margin-top:12px;font-size:11px;color:var(--md-on-surface-variant)">
+              Database: <code style="background:var(--md-surface-container);padding:1px 5px;border-radius:4px">mydrdworks-default-rtdb</code> · Path: <code style="background:var(--md-surface-container);padding:1px 5px;border-radius:4px">/works</code>
+            </div>
+          </div>
+
+          <div class="section-title" style="margin-top:16px">📥 Load Sample Data</div>
+          <div class="card" style="padding:16px">
+            <div style="font-size:13px;color:var(--md-on-surface-variant);margin-bottom:12px">Load built-in demo dataset for Mayiladuthurai District to explore all features.</div>
+            <button class="md-btn md-btn-filled" onclick="loadSampleData()"><span class="material-symbols-outlined" style="font-size:16px">science</span> Load Sample Data</button>
+            <div style="margin-top:12px;font-size:12px;color:var(--md-on-surface-variant)">
+              Demo includes 50 sample works across all blocks with realistic AS/TS dates, amounts, and stages.
+            </div>
+          </div>
+
+          <div class="section-title" style="margin-top:16px">⬇️ Download Template</div>
+          <div class="card" style="padding:16px">
+            <div style="font-size:13px;color:var(--md-on-surface-variant);margin-bottom:12px">Download a blank CSV template with all required columns.</div>
+            <button class="md-btn md-btn-outlined" onclick="downloadTemplate()"><span class="material-symbols-outlined" style="font-size:16px">download</span> CSV Template</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Apps Script Tab -->
+    <div class="tab-panel" id="tab-appscript">
+      <div class="page-title">Google Apps Script Integration</div>
+      <div class="page-subtitle">Deploy this Apps Script to auto-fetch data from your Google Sheet into this app</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+        <div>
+          <div class="section-title">Step 1 — Create the Apps Script Web App</div>
+          <div class="card" style="padding:16px">
+            <div style="font-size:13px;margin-bottom:10px">Open your Google Sheet → Extensions → Apps Script → paste the code below → Deploy as Web App (access: Anyone)</div>
+            <div class="code-block" id="apps-script-code"></div>
+            <button class="md-btn md-btn-tonal" onclick="copyCode()"><span class="material-symbols-outlined" style="font-size:16px">content_copy</span> Copy Code</button>
+          </div>
+
+          <div class="section-title">Step 2 — Connect this App</div>
+          <div class="card" style="padding:16px">
+            <div style="font-size:13px;margin-bottom:10px">Paste the deployed Web App URL here:</div>
+            <div class="input-group">
+              <input class="md-input" id="webapp-url" placeholder="https://script.google.com/macros/s/…/exec">
+              <button class="md-btn md-btn-filled" onclick="connectWebApp()"><span class="material-symbols-outlined" style="font-size:16px">hub</span> Connect</button>
+            </div>
+            <div class="success-banner" id="connect-success" style="margin-top:8px">
+              <span class="material-symbols-outlined">check_circle</span>
+              <span>Connected! Auto-refreshing every 5 minutes.</span>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="section-title">Apps Script — How It Works</div>
+          <div class="card" style="padding:16px">
+            <div style="font-size:13px;line-height:1.8;color:var(--md-on-surface-variant)">
+              <strong style="color:var(--md-on-surface)">Architecture:</strong><br>
+              Google Sheet (source) → Apps Script (API layer) → This Web App (display + analytics)<br><br>
+              <strong style="color:var(--md-on-surface)">What the script does:</strong><br>
+              • Reads all rows from the active sheet<br>
+              • Returns JSON with headers + rows<br>
+              • Supports optional <code>?block=…&stage=…</code> query params<br>
+              • CORS headers enabled for browser access<br><br>
+              <strong style="color:var(--md-on-surface)">Google Drive integration:</strong><br>
+              • Can also read from a specific Sheet by file ID<br>
+              • Supports multiple sheets/tabs<br>
+              • Auto-detects date columns and formats them<br><br>
+              <strong style="color:var(--md-on-surface)">Security:</strong><br>
+              • Deploy with "Execute as: Me" and "Access: Anyone"<br>
+              • No login required for district users<br>
+              • Use URL as the access key (keep it private)
+            </div>
+          </div>
+
+          <div class="section-title" style="margin-top:16px">Column Configuration</div>
+          <div class="card" style="padding:16px">
+            <div style="font-size:13px;color:var(--md-on-surface-variant);margin-bottom:8px">Change these in the Apps Script to match your sheet:</div>
+            <div class="code-block" style="font-size:11px">const CONFIG = {
+  SHEET_NAME: "Sheet1",   // tab name
+  HEADER_ROW: 2,          // row with column headers
+  DATA_START: 3,          // first data row
+  DATE_FORMAT: "dd/MM/yyyy"
+};</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- Apps Script Modal -->
+<div class="modal-backdrop" id="modal-backdrop" onclick="closeModal(event)">
+  <div class="modal">
+    <div class="modal-title">📋 Apps Script — Quick Reference</div>
+    <div style="font-size:13px;color:var(--md-on-surface-variant);margin-bottom:12px">Deploy this as a Google Apps Script Web App to push your Sheet data into this tracker automatically.</div>
+    <button class="md-btn md-btn-tonal" onclick="copyCode();closeModal(null,true)"><span class="material-symbols-outlined" style="font-size:16px">content_copy</span> Copy Apps Script Code</button>
+    <div class="modal-actions">
+      <button class="md-btn md-btn-filled" onclick="closeModal(null,true);showTab('appscript',document.querySelector('[onclick*=appscript]'))">Open Full Guide</button>
+      <button class="md-btn md-btn-outlined" onclick="closeModal(null,true)">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+/* ═══════════════════════════════════════════════
+   FIREBASE — REST API + SSE (no SDK required)
+═══════════════════════════════════════════════ */
+const FB_URL  = 'https://mydrdworks-default-rtdb.asia-southeast1.firebasedatabase.app';
+const FB_AUTH = 'AIzaSyBTwI8hLZYCNvRyzFM9FEe3VuxOBaWYM5s'; // web API key for auth param
+
+let fbSSE       = null;   // EventSource for real-time works stream
+let fbMetaSSE   = null;   // EventSource for meta stream
+let fbConnected = false;
+
+/* ── helpers ── */
+function fbGet(path) {
+  return fetch(`${FB_URL}/${path}.json`).then(r => r.json());
+}
+function fbPut(path, data) {
+  return fetch(`${FB_URL}/${path}.json`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  }).then(r => r.json());
+}
+
+/* ── SSE real-time listener ── */
+function initFirebase() {
+  setFbStatus('connecting', 'Connecting…');
+
+  // ── works stream ──
+  fbSSE = new EventSource(`${FB_URL}/works.json`);
+
+  fbSSE.addEventListener('put', e => {
+    try {
+      const payload = JSON.parse(e.data);
+      const val = payload.data;
+      if (val) {
+        const rows = Array.isArray(val) ? val : Object.values(val);
+        const mapped = rows.filter(Boolean).map((r, i) => {
+          const m = mapRow(r);
+          if (!m.sl) m.sl = i + 1;
+          return m;
+        });
+        allData      = mapped.map((r, i) => ({ ...r, _id: i }));
+        filteredData = [...allData];
+        populateFilters();
+        renderAll();
+        updateNavStats();
+        updateRecordCount();
+        fbConnected = true;
+        setFbStatus('live', `${allData.length} works · live`);
+      } else {
+        fbConnected = true;
+        setFbStatus('empty', 'DB empty — push data');
+      }
+    } catch(err) { console.error('SSE parse error:', err); }
+  });
+
+  fbSSE.addEventListener('patch', e => {
+    // Partial update — just do a fresh pull to keep things simple
+    try {
+      const payload = JSON.parse(e.data);
+      if (payload.data) pullFromFirebase(true);
+    } catch(err) {}
+  });
+
+  fbSSE.onerror = () => {
+    fbConnected = false;
+    setFbStatus('offline', 'Reconnecting…');
+  };
+
+  // ── meta stream (lastUpdated timestamp) ──
+  fbMetaSSE = new EventSource(`${FB_URL}/meta.json`);
+
+  fbMetaSSE.addEventListener('put', e => {
+    try {
+      const payload = JSON.parse(e.data);
+      const meta = payload.data;
+      if (meta && meta.lastUpdated) applyMetaTimestamp(meta.lastUpdated);
+    } catch(err) {}
+  });
+}
+
+function applyMetaTimestamp(iso) {
+  const dt = new Date(iso);
+  const label = dt.toLocaleString('en-IN', {
+    day: '2-digit', month: 'short', year: 'numeric',
+    hour: '2-digit', minute: '2-digit'
+  });
+  const sub = document.getElementById('dash-subtitle');
+  if (sub) sub.textContent = `Showing ${allData.length} works · Last updated: ${label}`;
+  const imp = document.getElementById('fb-import-updated');
+  if (imp) imp.textContent = `Last updated: ${label}`;
+}
+
+function setFbStatus(state, text) {
+  const colors = { live:'#4CAF50', connecting:'#FFC107', offline:'#FF5722', error:'#F44336', empty:'#9E9E9E' };
+  const col = colors[state] || '#888';
+  ['fb-dot','fb-import-dot'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.background = col;
+  });
+  ['fb-status-text','fb-import-status'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = text;
+  });
+}
+
+async function pushToFirebase() {
+  if (!allData.length) { showToast('No data to push'); return; }
+  try {
+    showToast('Pushing to Firebase…');
+    const obj = {};
+    allData.forEach((r, i) => {
+      const clean = { ...r };
+      delete clean._id;
+      obj[`w${String(i).padStart(4,'0')}`] = clean;
+    });
+    await fbPut('works', obj);
+    await fbPut('meta', {
+      lastUpdated: new Date().toISOString(),
+      recordCount: allData.length,
+      pushedBy: 'Works Tracker UI'
+    });
+    showToast(`✓ Pushed ${allData.length} works to Firebase`);
+  } catch(e) {
+    showToast('❌ Push failed: ' + e.message);
+  }
+}
+
+async function pullFromFirebase(silent = false) {
+  if (!silent) showToast('Pulling from Firebase…');
+  try {
+    const val = await fbGet('works');
+    if (!val) { if (!silent) showToast('Firebase DB is empty'); return; }
+    const rows = Array.isArray(val) ? val : Object.values(val);
+    const mapped = rows.filter(Boolean).map((r, i) => {
+      const m = mapRow(r);
+      if (!m.sl) m.sl = i + 1;
+      return m;
+    });
+    allData      = mapped.map((r, i) => ({ ...r, _id: i }));
+    filteredData = [...allData];
+    populateFilters();
+    renderAll();
+    updateNavStats();
+    updateRecordCount();
+    // Also refresh meta timestamp
+    const meta = await fbGet('meta');
+    if (meta && meta.lastUpdated) applyMetaTimestamp(meta.lastUpdated);
+    if (!silent) showToast(`✓ Pulled ${mapped.length} works from Firebase`);
+  } catch(e) {
+    if (!silent) showToast('❌ Pull failed: ' + e.message);
+  }
+}
+
+/* ═══════════════════════════════════════════════
+   DATA STORE
+═══════════════════════════════════════════════ */
+let allData = [];
+let filteredData = [];
+let currentPage = 1;
+const PAGE_SIZE = 25;
+let sortKey = '';
+let sortDir = 1;
+let webAppUrl = localStorage.getItem('worksTrackerWebAppUrl') || '';
+let autoRefreshTimer = null;
+let charts = {};
+
+const COLS = ['sl','block','vp','habitation','workId','workGroup','workType','workName',
+              'asNo','asDate','asValue','tsNo','tsDate','tsValue','scheme','agency','spent','stage'];
+const COL_LABELS = {
+  sl:'Sl.', block:'Block Name', vp:'Village Panchayat Name', habitation:'Habitation Name',
+  workId:'Work ID', workGroup:'Work Group', workType:'Work Type', workName:'Work Name',
+  asNo:'AS Number', asDate:'AS Date', asValue:'AS Value', tsNo:'TS Number', tsDate:'TS Date',
+  tsValue:'TS Value', scheme:'Scheme Name', agency:'Agency Name', spent:'Amount Spent Sofar', stage:'Current Stage'
+};
+
+/* ═══════════════════════════════════════════════
+   APPS SCRIPT CODE
+═══════════════════════════════════════════════ */
+const APPS_SCRIPT = `// ═══════════════════════════════════════
+// Works Tracker — Google Apps Script API
+// Mayiladuthurai District, RD Department
+// Deploy as Web App (Execute: Me, Access: Anyone)
+// ═══════════════════════════════════════
+
+const CONFIG = {
+  SHEET_NAME: "Sheet1",
+  HEADER_ROW: 2,
+  DATA_START: 3,
+  DATE_FORMAT: "dd/MM/yyyy"
+};
+
+function doGet(e) {
+  const params = e ? e.parameter : {};
+  try {
+    const data = getData(params);
+    return buildResponse(data);
+  } catch(err) {
+    return buildResponse({ error: err.message });
+  }
+}
+
+function getData(params) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ws = ss.getSheetByName(CONFIG.SHEET_NAME) || ss.getActiveSheet();
+  
+  const headers = ws.getRange(CONFIG.HEADER_ROW, 1, 1, ws.getLastColumn())
+                    .getValues()[0].map(h => String(h).trim());
+  const rows = ws.getRange(CONFIG.DATA_START, 1, ws.getLastRow() - CONFIG.DATA_START + 1, ws.getLastColumn())
+                 .getValues();
+  
+  let records = rows.filter(r => r.some(c => c !== '')).map(row => {
+    const obj = {};
+    headers.forEach((h, i) => {
+      let val = row[i];
+      if (val instanceof Date) val = Utilities.formatDate(val, Session.getScriptTimeZone(), CONFIG.DATE_FORMAT);
+      obj[h] = val === null || val === undefined ? '' : String(val);
+    });
+    return obj;
+  });
+
+  // Optional filters
+  if (params.block) records = records.filter(r => (r['Block Name']||'').toLowerCase().includes(params.block.toLowerCase()));
+  if (params.stage) records = records.filter(r => (r['Current Stage']||'').toLowerCase().includes(params.stage.toLowerCase()));
+  if (params.scheme) records = records.filter(r => (r['Scheme Name']||'').toLowerCase().includes(params.scheme.toLowerCase()));
+
+  return { headers, records, count: records.length, timestamp: new Date().toISOString() };
+}
+
+function buildResponse(data) {
+  return ContentService.createTextOutput(JSON.stringify(data))
+    .setMimeType(ContentService.MimeType.JSON);
+}`;
+
+document.getElementById('apps-script-code').textContent = APPS_SCRIPT;
+
+/* ═══════════════════════════════════════════════
+   SAMPLE DATA
+═══════════════════════════════════════════════ */
+function generateSampleData() {
+  const blocks = ['Mayiladuthurai','Sirkali','Tharangambadi','Kuthalam','Sembanarkoil','Kollidam','Nagapattinam'];
+  const vps = {
+    'Mayiladuthurai': ['Mangudi', 'Keezhaiyur', 'Vazhudareddy', 'Mangarankudi'],
+    'Sirkali': ['Sirkali Town', 'Vadamarudur', 'Thiruvengadu', 'Poompuhar'],
+    'Tharangambadi': ['Tharangambadi', 'Kottucherimangalam', 'Manamelkudi', 'Nachiyarkoil'],
+    'Kuthalam': ['Kuthalam', 'Agaram', 'Thittacheri', 'Kolathur'],
+    'Sembanarkoil': ['Sembanarkoil', 'Thevur', 'Sivapuri', 'Keeramangalam'],
+    'Kollidam': ['Kollidam', 'Kattumannarkoil', 'Sirkazhi', 'Poonthottam'],
+    'Nagapattinam': ['Nagapattinam', 'Velanganni', 'Keechankuppam', 'Tiruvorriyur']
+  };
+  const schemes = ['MGNREGS','CMRD','PMGSY','RIDF','SFC','CFC','NABARD'];
+  const agencies = ['PWD','RD Dept','DRDA','PMGSY PIU','Panchayat Union'];
+  const workGroups = ['Roads','Buildings','Water Supply','Drainage','Land Development'];
+  const workTypes = ['CC Road','Metal Road','Community Hall','Overhead Tank','Check Dam','Canal Deepening','Playground'];
+  const stages = ['AS','TS','Grounded','Work-in-Progress','Completed'];
+  const stageWeights = [0.1,0.15,0.15,0.35,0.25];
+
+  function weightedStage() {
+    const r = Math.random(), cum = stageWeights;
+    let s = 0;
+    for(let i=0;i<stages.length;i++){ s+=cum[i]; if(r<s) return stages[i]; }
+    return stages[4];
+  }
+  function randDate(y1,m1,y2,m2) {
+    const d1=new Date(y1,m1-1,1), d2=new Date(y2,m2,1);
+    return new Date(d1.getTime()+Math.random()*(d2.getTime()-d1.getTime()));
+  }
+  function fmt(d) { if(!d) return ''; return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`; }
+
+  const data = [];
+  for(let i=1;i<=60;i++){
+    const block = blocks[Math.floor(Math.random()*blocks.length)];
+    const vpList = vps[block]||['VP1'];
+    const vp = vpList[Math.floor(Math.random()*vpList.length)];
+    const scheme = schemes[Math.floor(Math.random()*schemes.length)];
+    const wg = workGroups[Math.floor(Math.random()*workGroups.length)];
+    const wt = workTypes[Math.floor(Math.random()*workTypes.length)];
+    const asDate = randDate(2023,4,2024,12);
+    const tsDate = new Date(asDate.getTime() + (15+Math.floor(Math.random()*60))*86400000);
+    const asVal = Math.round((2+Math.random()*18)*100000)/100;
+    const tsVal = Math.round(asVal*(0.95+Math.random()*0.1)*100)/100;
+    const stage = weightedStage();
+    const spent = stage==='Completed' ? tsVal : stage==='Work-in-Progress' ? Math.round(tsVal*Math.random()*100)/100 : 0;
+    const asNo = `AS/${block.substring(0,3).toUpperCase()}/${String(asDate.getFullYear()).substring(2)}/${String(i).padStart(3,'0')}`;
+    const tsNo = `TS/${block.substring(0,3).toUpperCase()}/${String(tsDate.getFullYear()).substring(2)}/${String(i).padStart(3,'0')}`;
+    data.push({
+      sl:i, block, vp, habitation: vp + ' Colony', workId:`MYL/${block.substring(0,3).toUpperCase()}/2024/${String(i).padStart(4,'0')}`,
+      workGroup:wg, workType:wt, workName:`${wt} at ${vp}`,
+      asNo, asDate:fmt(asDate), asValue:asVal,
+      tsNo, tsDate:fmt(tsDate), tsValue:tsVal,
+      scheme, agency: agencies[Math.floor(Math.random()*agencies.length)],
+      spent, stage
+    });
+  }
+  return data;
+}
+
+/* ═══════════════════════════════════════════════
+   PARSE HELPERS
+═══════════════════════════════════════════════ */
+function mapRow(obj) {
+  const m = {};
+  const keys = Object.keys(obj);
+  const lower = keys.map(k => k.toLowerCase().replace(/[\s.#]/g,''));
+  
+  const mapping = {
+    sl: ['sl','slno','sno','serialno'],
+    block: ['blockname','block'],
+    vp: ['villagepanchayatname','villagepanchayat','vpname','vp'],
+    habitation: ['habitationname','habitation'],
+    workId: ['workid','work id','workno'],
+    workGroup: ['workgroup','group'],
+    workType: ['worktype','type'],
+    workName: ['workname','name','work name'],
+    asNo: ['asnumber','asno','as number','asno'],
+    asDate: ['asdate','as date'],
+    asValue: ['asvalue','as value'],
+    tsNo: ['tsnumber','tsno','ts number'],
+    tsDate: ['tsdate','ts date'],
+    tsValue: ['tsvalue','ts value'],
+    scheme: ['schemename','scheme','scheme name'],
+    agency: ['agencyname','agency','agency name'],
+    spent: ['amountspentsofar','spent','amountspent','spentsofar'],
+    stage: ['currentstage','stage','current stage']
+  };
+
+  for(const [field, aliases] of Object.entries(mapping)){
+    for(let i=0;i<lower.length;i++){
+      if(aliases.includes(lower[i])){
+        m[field] = obj[keys[i]] || '';
+        break;
+      }
+    }
+    if(!m[field]) m[field] = '';
+  }
+  return m;
+}
+
+function parseDate(s) {
+  if(!s) return null;
+  s = String(s).trim();
+  // dd/mm/yyyy
+  let m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+  if(m) return new Date(+m[3], +m[2]-1, +m[1]);
+  // yyyy-mm-dd
+  m = s.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);
+  if(m) return new Date(+m[1], +m[2]-1, +m[3]);
+  // Excel serial
+  if(/^\d+$/.test(s)){
+    const serial = +s;
+    if(serial>1000 && serial<60000){
+      const d = new Date((serial-25569)*86400000);
+      return d;
+    }
+  }
+  return null;
+}
+
+function fmtINR(v) {
+  const n = parseFloat(v)||0;
+  if(n===0) return '—';
+  return '₹' + n.toLocaleString('en-IN',{maximumFractionDigits:0});
+}
+
+/* ═══════════════════════════════════════════════
+   LOAD & RENDER
+═══════════════════════════════════════════════ */
+function loadData(rows) {
+  allData = rows.map((r,i) => ({ ...r, _id: i }));
+  filteredData = [...allData];
+  populateFilters();
+  renderAll();
+  updateNavStats();
+  updateRecordCount();
+  showToast(`✓ Loaded ${allData.length} works successfully`);
+}
+
+function renderAll() {
+  renderDashboard();
+  renderTable();
+  applyDateFilter();
+}
+
+function updateRecordCount() {
+  document.getElementById('record-count').textContent = `${allData.length} works`;
+}
+
+/* ═══════════════════════════════════════════════
+   DASHBOARD
+═══════════════════════════════════════════════ */
+function renderDashboard() {
+  if(!allData.length) { document.getElementById('stats-grid').innerHTML = '<div class="empty-state"><span class="material-symbols-outlined">inbox</span><h3>No data loaded</h3><p>Import data or load sample data to see the dashboard</p></div>'; return; }
+
+  // Stats
+  const totalAS = allData.reduce((s,r)=>s+(parseFloat(r.asValue)||0),0);
+  const totalTS = allData.reduce((s,r)=>s+(parseFloat(r.tsValue)||0),0);
+  const totalSpent = allData.reduce((s,r)=>s+(parseFloat(r.spent)||0),0);
+  const completed = allData.filter(r=>r.stage==='Completed').length;
+  const wip = allData.filter(r=>r.stage==='Work-in-Progress').length;
+
+  document.getElementById('dash-subtitle').textContent = `Showing ${allData.length} works · Last updated: ${new Date().toLocaleString('en-IN',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})}`;
+  // Firebase meta listener will overwrite this with DB timestamp if available
+
+  document.getElementById('stats-grid').innerHTML = `
+    <div class="stat-card" style="--accent:#1565C0">
+      <div class="stat-icon material-symbols-outlined">construction</div>
+      <div class="stat-label">Total Works</div>
+      <div class="stat-value">${allData.length}</div>
+      <div class="stat-sub">${completed} completed · ${wip} in progress</div>
+    </div>
+    <div class="stat-card" style="--accent:#00695C">
+      <div class="stat-icon material-symbols-outlined">receipt_long</div>
+      <div class="stat-label">Total AS Value</div>
+      <div class="stat-value" style="font-size:20px">${fmtINR(totalAS)}</div>
+      <div class="stat-sub">Administrative Sanction</div>
+    </div>
+    <div class="stat-card" style="--accent:#E65100">
+      <div class="stat-icon material-symbols-outlined">fact_check</div>
+      <div class="stat-label">Total TS Value</div>
+      <div class="stat-value" style="font-size:20px">${fmtINR(totalTS)}</div>
+      <div class="stat-sub">Technical Sanction</div>
+    </div>
+    <div class="stat-card" style="--accent:#6A1B9A">
+      <div class="stat-icon material-symbols-outlined">payments</div>
+      <div class="stat-label">Amount Spent</div>
+      <div class="stat-value" style="font-size:20px">${fmtINR(totalSpent)}</div>
+      <div class="stat-sub">${totalTS>0?Math.round(totalSpent/totalTS*100):0}% utilisation</div>
+    </div>
+    <div class="stat-card" style="--accent:#2E7D32">
+      <div class="stat-icon material-symbols-outlined">check_circle</div>
+      <div class="stat-label">Completed Works</div>
+      <div class="stat-value">${completed}</div>
+      <div class="stat-sub">${allData.length>0?Math.round(completed/allData.length*100):0}% completion rate</div>
+    </div>
+    <div class="stat-card" style="--accent:#F57F17">
+      <div class="stat-icon material-symbols-outlined">pending</div>
+      <div class="stat-label">In Progress</div>
+      <div class="stat-value">${wip}</div>
+      <div class="stat-sub">${allData.filter(r=>r.stage==='Grounded').length} grounded · ${allData.filter(r=>r.stage==='TS').length} at TS stage</div>
+    </div>`;
+
+  // Charts
+  renderCharts();
+}
+
+function renderCharts() {
+  const stageCounts = {};
+  const blockCounts = {};
+  const schemeCounts = {};
+  allData.forEach(r => {
+    stageCounts[r.stage||'Unknown'] = (stageCounts[r.stage||'Unknown']||0)+1;
+    blockCounts[r.block||'Unknown'] = (blockCounts[r.block||'Unknown']||0)+1;
+    schemeCounts[r.scheme||'Unknown'] = (schemeCounts[r.scheme||'Unknown']||0)+1;
+  });
+
+  const stageColors = { 'Completed':'#43A047','Work-in-Progress':'#FB8C00','Grounded':'#8E24AA','TS':'#1E88E5','AS':'#E53935','Unknown':'#90A4AE' };
+
+  destroyChart('stageChart');
+  destroyChart('blockChart');
+  destroyChart('schemeChart');
+  destroyChart('finChart');
+
+  charts['stageChart'] = new Chart(document.getElementById('stageChart'), {
+    type:'doughnut',
+    data:{
+      labels: Object.keys(stageCounts),
+      datasets:[{ data: Object.values(stageCounts), backgroundColor: Object.keys(stageCounts).map(k=>stageColors[k]||'#90A4AE'), borderWidth:2 }]
+    },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'right',labels:{font:{size:11}}}}}
+  });
+
+  const blockColors = ['#1565C0','#00695C','#E65100','#6A1B9A','#2E7D32','#F57F17','#C62828'];
+  charts['blockChart'] = new Chart(document.getElementById('blockChart'), {
+    type:'bar',
+    data:{
+      labels: Object.keys(blockCounts),
+      datasets:[{ label:'Works', data: Object.values(blockCounts), backgroundColor: blockColors, borderRadius:4 }]
+    },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true, ticks:{stepSize:1}}}}
+  });
+
+  charts['schemeChart'] = new Chart(document.getElementById('schemeChart'), {
+    type:'bar',
+    data:{
+      labels: Object.keys(schemeCounts),
+      datasets:[{ label:'Works', data: Object.values(schemeCounts), backgroundColor:'#1565C0', borderRadius:4 }]
+    },
+    options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{x:{beginAtZero:true}}}
+  });
+
+  const blocks = Object.keys(blockCounts);
+  const asVals = blocks.map(b => allData.filter(r=>r.block===b).reduce((s,r)=>s+(parseFloat(r.asValue)||0),0));
+  const tsVals = blocks.map(b => allData.filter(r=>r.block===b).reduce((s,r)=>s+(parseFloat(r.tsValue)||0),0));
+  const spentVals = blocks.map(b => allData.filter(r=>r.block===b).reduce((s,r)=>s+(parseFloat(r.spent)||0),0));
+
+  charts['finChart'] = new Chart(document.getElementById('finChart'), {
+    type:'bar',
+    data:{
+      labels: blocks,
+      datasets:[
+        { label:'AS Value', data:asVals, backgroundColor:'rgba(21,101,192,0.7)', borderRadius:3 },
+        { label:'TS Value', data:tsVals, backgroundColor:'rgba(0,105,92,0.7)', borderRadius:3 },
+        { label:'Spent', data:spentVals, backgroundColor:'rgba(230,81,0,0.7)', borderRadius:3 }
+      ]
+    },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'top',labels:{font:{size:11}}}}, scales:{x:{ticks:{font:{size:10}}},y:{beginAtZero:true,ticks:{callback:v=>'₹'+Math.round(v/100000)+'L'}}}}
+  });
+}
+
+function destroyChart(id) {
+  if(charts[id]) { charts[id].destroy(); delete charts[id]; }
+}
+
+/* ═══════════════════════════════════════════════
+   WORKS TABLE
+═══════════════════════════════════════════════ */
+function populateFilters() {
+  const selectors = { 'filter-block':'block', 'filter-stage':'stage', 'filter-scheme':'scheme', 'filter-group':'workGroup' };
+  for(const [id, field] of Object.entries(selectors)){
+    const sel = document.getElementById(id);
+    const vals = [...new Set(allData.map(r=>r[field]).filter(Boolean))].sort();
+    const first = sel.options[0].text;
+    sel.innerHTML = `<option value="">${first}</option>`;
+    vals.forEach(v => { const o=document.createElement('option'); o.value=v; o.textContent=v; sel.appendChild(o); });
+  }
+  const colMap = document.getElementById('col-mapping');
+  if(colMap) colMap.innerHTML = COLS.map(c=>`<span style="display:inline-flex;align-items:center;gap:4px;margin-right:8px"><span class="material-symbols-outlined" style="font-size:14px;color:var(--md-secondary)">check_circle</span>${COL_LABELS[c]}</span>`).join('');
+}
+
+function applyFilters() {
+  const search = document.getElementById('search-input').value.toLowerCase();
+  const block = document.getElementById('filter-block').value;
+  const stage = document.getElementById('filter-stage').value;
+  const scheme = document.getElementById('filter-scheme').value;
+  const group = document.getElementById('filter-group').value;
+
+  filteredData = allData.filter(r => {
+    if(block && r.block !== block) return false;
+    if(stage && r.stage !== stage) return false;
+    if(scheme && r.scheme !== scheme) return false;
+    if(group && r.workGroup !== group) return false;
+    if(search) {
+      const hay = [r.workName, r.workId, r.vp, r.habitation, r.block].join(' ').toLowerCase();
+      if(!hay.includes(search)) return false;
+    }
+    return true;
+  });
+
+  currentPage = 1;
+  renderTable();
+  document.getElementById('filtered-count').textContent = `${filteredData.length} of ${allData.length} works`;
+}
+
+function clearFilters() {
+  document.getElementById('search-input').value = '';
+  ['filter-block','filter-stage','filter-scheme','filter-group'].forEach(id => { document.getElementById(id).value = ''; });
+  filteredData = [...allData];
+  currentPage = 1;
+  renderTable();
+  document.getElementById('filtered-count').textContent = '';
+}
+
+function sortTable(key) {
+  if(sortKey === key) sortDir *= -1; else { sortKey = key; sortDir = 1; }
+  filteredData.sort((a,b) => {
+    let va = a[key]||'', vb = b[key]||'';
+    const na = parseFloat(va), nb = parseFloat(vb);
+    if(!isNaN(na) && !isNaN(nb)) return (na-nb)*sortDir;
+    const da = parseDate(va), db = parseDate(vb);
+    if(da && db) return (da-db)*sortDir;
+    return String(va).localeCompare(String(vb))*sortDir;
+  });
+  renderTable();
+}
+
+function stageChip(stage) {
+  const cls = stage ? 'stage-'+stage.replace(/\s+/g,'-') : 'stage-default';
+  return `<span class="stage-chip ${cls}">${stage||'—'}</span>`;
+}
+
+function renderTable() {
+  const tbody = document.getElementById('works-tbody');
+  if(!filteredData.length) {
+    tbody.innerHTML = `<tr><td colspan="18"><div class="empty-state"><span class="material-symbols-outlined">search_off</span><h3>No works found</h3><p>Try adjusting your filters</p></div></td></tr>`;
+    document.getElementById('table-info').textContent = '';
+    document.getElementById('pagination').innerHTML = '';
+    return;
+  }
+  const start = (currentPage-1)*PAGE_SIZE, end = Math.min(start+PAGE_SIZE, filteredData.length);
+  const rows = filteredData.slice(start, end);
+  tbody.innerHTML = rows.map(r => `<tr>
+    <td>${r.sl||''}</td>
+    <td><span style="font-size:12px;background:var(--md-primary-container);color:var(--md-on-primary-container);padding:2px 8px;border-radius:10px">${r.block||'—'}</span></td>
+    <td>${r.vp||'—'}</td>
+    <td>${r.habitation||'—'}</td>
+    <td><span style="font-family:monospace;font-size:11px">${r.workId||'—'}</span></td>
+    <td>${r.workGroup||'—'}</td>
+    <td>${r.workType||'—'}</td>
+    <td style="max-width:200px;white-space:normal;word-break:break-word">${r.workName||'—'}</td>
+    <td><span style="font-family:monospace;font-size:11px">${r.asNo||'—'}</span></td>
+    <td>${r.asDate||'—'}</td>
+    <td class="td-num">${fmtINR(r.asValue)}</td>
+    <td><span style="font-family:monospace;font-size:11px">${r.tsNo||'—'}</span></td>
+    <td>${r.tsDate||'—'}</td>
+    <td class="td-num">${fmtINR(r.tsValue)}</td>
+    <td>${r.scheme||'—'}</td>
+    <td>${r.agency||'—'}</td>
+    <td class="td-num">${fmtINR(r.spent)}</td>
+    <td>${stageChip(r.stage)}</td>
+  </tr>`).join('');
+
+  document.getElementById('table-info').textContent = `Showing ${start+1}–${end} of ${filteredData.length}`;
+  renderPagination();
+}
+
+function renderPagination() {
+  const total = Math.ceil(filteredData.length / PAGE_SIZE);
+  const pg = document.getElementById('pagination');
+  if(total <= 1) { pg.innerHTML = ''; return; }
+  let html = `<button class="page-btn" onclick="goPage(${currentPage-1})" ${currentPage===1?'disabled':''}>‹</button>`;
+  const pages = [];
+  for(let i=1;i<=total;i++){
+    if(i===1||i===total||Math.abs(i-currentPage)<=2) pages.push(i);
+    else if(pages[pages.length-1]!=='…') pages.push('…');
+  }
+  pages.forEach(p => {
+    if(p==='…') html += `<span class="page-info">…</span>`;
+    else html += `<button class="page-btn ${p===currentPage?'active':''}" onclick="goPage(${p})">${p}</button>`;
+  });
+  html += `<button class="page-btn" onclick="goPage(${currentPage+1})" ${currentPage===total?'disabled':''}>›</button>`;
+  pg.innerHTML = html;
+}
+
+function goPage(p) {
+  const total = Math.ceil(filteredData.length / PAGE_SIZE);
+  if(p<1||p>total) return;
+  currentPage = p;
+  renderTable();
+}
+
+/* ═══════════════════════════════════════════════
+   DATE REVIEW
+═══════════════════════════════════════════════ */
+function setQuickDate(range) {
+  const now = new Date(), y = now.getFullYear(), m = now.getMonth();
+  let from, to = new Date(y, m+1, 0);
+  if(range==='thisMonth') { from = new Date(y,m,1); }
+  else if(range==='last3') { from = new Date(y,m-3,1); }
+  else if(range==='thisYear') { from = new Date(y,0,1); to = new Date(y,11,31); }
+  else { document.getElementById('date-from').value=''; document.getElementById('date-to').value=''; applyDateFilter(); return; }
+  document.getElementById('date-from').value = toInputDate(from);
+  document.getElementById('date-to').value = toInputDate(to);
+  applyDateFilter();
+}
+
+function toInputDate(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+
+function applyDateFilter() {
+  if(!allData.length) {
+    document.getElementById('date-summary-grid').innerHTML = '<div style="color:var(--md-on-surface-variant);font-size:13px;grid-column:1/-1">No data loaded. Import data first.</div>';
+    document.getElementById('date-timeline').innerHTML = '';
+    return;
+  }
+  const type = document.getElementById('date-type').value;
+  const from = document.getElementById('date-from').value ? new Date(document.getElementById('date-from').value) : null;
+  const to = document.getElementById('date-to').value ? new Date(document.getElementById('date-to').value+'T23:59:59') : null;
+  const field = type === 'as' ? 'asDate' : 'tsDate';
+
+  const filtered = allData.filter(r => {
+    const d = parseDate(r[field]);
+    if(!d) return false;
+    if(from && d < from) return false;
+    if(to && d > to) return false;
+    return true;
+  }).sort((a,b) => {
+    const da = parseDate(a[field]), db = parseDate(b[field]);
+    return (da||0) - (db||0);
+  });
+
+  // Summary cards
+  const totalVal = filtered.reduce((s,r)=>s+(parseFloat(type==='as'?r.asValue:r.tsValue)||0),0);
+  const completed = filtered.filter(r=>r.stage==='Completed').length;
+  const blocks = [...new Set(filtered.map(r=>r.block))].length;
+  document.getElementById('date-summary-grid').innerHTML = `
+    <div class="date-stat"><div class="date-stat-num">${filtered.length}</div><div class="date-stat-label">Works in Period</div></div>
+    <div class="date-stat"><div class="date-stat-num" style="font-size:16px">${fmtINR(totalVal)}</div><div class="date-stat-label">${type.toUpperCase()} Value</div></div>
+    <div class="date-stat"><div class="date-stat-num">${blocks}</div><div class="date-stat-label">Blocks Covered</div></div>
+    <div class="date-stat"><div class="date-stat-num">${completed}</div><div class="date-stat-label">Completed</div></div>`;
+
+  // Timeline
+  const timeline = document.getElementById('date-timeline');
+  if(!filtered.length) { timeline.innerHTML = '<div style="color:var(--md-on-surface-variant);font-size:13px;padding:20px 0">No works found in this date range.</div>'; }
+  else {
+    timeline.innerHTML = filtered.slice(0,50).map(r => {
+      const d = parseDate(r[field]);
+      const dStr = d ? d.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}) : r[field];
+      return `<div class="timeline-entry">
+        <div class="timeline-dot"></div>
+        <div>
+          <div class="timeline-date">${dStr}</div>
+          <div class="timeline-title">${r.workName||r.workId}</div>
+          <div class="timeline-sub">${r.block} · ${r.vp} · ${stageChip(r.stage)} · ${fmtINR(type==='as'?r.asValue:r.tsValue)}</div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  // Day-wise chart
+  const dayCounts = {};
+  filtered.forEach(r => {
+    const d = parseDate(r[field]);
+    if(!d) return;
+    const key = d.toLocaleDateString('en-IN',{day:'2-digit',month:'short'});
+    dayCounts[key] = (dayCounts[key]||0)+1;
+  });
+  destroyChart('dateChart');
+  charts['dateChart'] = new Chart(document.getElementById('dateChart'), {
+    type:'bar',
+    data:{
+      labels: Object.keys(dayCounts),
+      datasets:[{ label:'Works', data: Object.values(dayCounts), backgroundColor:'rgba(21,101,192,0.7)', borderRadius:4 }]
+    },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{x:{ticks:{maxRotation:45,font:{size:10}}},y:{beginAtZero:true,ticks:{stepSize:1}}}}
+  });
+}
+
+/* ═══════════════════════════════════════════════
+   NAV STATS
+═══════════════════════════════════════════════ */
+function updateNavStats() {
+  const blocks = [...new Set(allData.map(r=>r.block).filter(Boolean))];
+  const completed = allData.filter(r=>r.stage==='Completed').length;
+  const wip = allData.filter(r=>r.stage==='Work-in-Progress').length;
+  document.getElementById('nav-stats').innerHTML = `
+    <div style="font-size:12px;color:var(--md-on-surface-variant);margin-bottom:6px">Total: <strong>${allData.length}</strong></div>
+    <span class="nav-stat-chip">✓ ${completed}</span>
+    <span class="nav-stat-chip" style="background:var(--md-secondary-container);color:var(--md-on-primary-container)">🔨 ${wip}</span>
+    <div style="margin-top:6px;font-size:11px;color:var(--md-on-surface-variant)">${blocks.length} blocks</div>`;
+}
+
+/* ═══════════════════════════════════════════════
+   IMPORT
+═══════════════════════════════════════════════ */
+function handleFileInput(e) { processFile(e.target.files[0]); }
+function handleDragOver(e) { e.preventDefault(); document.getElementById('drop-zone').classList.add('drag-over'); }
+function handleDragLeave() { document.getElementById('drop-zone').classList.remove('drag-over'); }
+function handleDrop(e) { e.preventDefault(); document.getElementById('drop-zone').classList.remove('drag-over'); if(e.dataTransfer.files[0]) processFile(e.dataTransfer.files[0]); }
+
+function processFile(file) {
+  if(!file) return;
+  const ext = file.name.split('.').pop().toLowerCase();
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      let rows = [];
+      if(ext==='csv') {
+        const text = e.target.result;
+        const lines = text.split('\n').filter(l=>l.trim());
+        const headers = lines[0].split(',').map(h=>h.replace(/"/g,'').trim());
+        rows = lines.slice(1).map(line => {
+          const vals = line.split(',').map(v=>v.replace(/"/g,'').trim());
+          const obj = {};
+          headers.forEach((h,i) => obj[h] = vals[i]||'');
+          return mapRow(obj);
+        });
+      } else {
+        const wb = XLSX.read(e.target.result, {type:'binary', cellDates:false});
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const raw = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
+        // Find header row (first row with >5 non-empty cells)
+        let hdrIdx = 0;
+        for(let i=0;i<Math.min(5,raw.length);i++){
+          if(raw[i].filter(c=>c!=='').length > 5){ hdrIdx = i; break; }
+        }
+        const headers = raw[hdrIdx].map(h=>String(h).trim());
+        rows = raw.slice(hdrIdx+1).filter(r=>r.some(c=>c!=='')).map((row,idx) => {
+          const obj = {};
+          headers.forEach((h,i) => obj[h] = row[i]===undefined?'':String(row[i]).trim());
+          const mapped = mapRow(obj);
+          if(!mapped.sl) mapped.sl = idx+1;
+          return mapped;
+        });
+      }
+      showBanner('upload-success', `upload-msg`, `Loaded ${rows.length} rows from ${file.name}`);
+      hideBanner('upload-error');
+      loadData(rows);
+    } catch(err) {
+      showBanner('upload-error','upload-err-msg',`Error: ${err.message}`);
+      hideBanner('upload-success');
+    }
+  };
+  if(ext==='csv') reader.readAsText(file); else reader.readAsBinaryString(file);
+}
+
+function parsePaste() {
+  const text = document.getElementById('paste-input').value.trim();
+  if(!text) return;
+  const lines = text.split('\n').filter(l=>l.trim());
+  if(lines.length < 2) { showToast('Need at least 2 rows (header + data)'); return; }
+  const headers = lines[0].split(',').map(h=>h.replace(/"/g,'').trim());
+  const rows = lines.slice(1).map((line,idx) => {
+    const vals = line.split(',').map(v=>v.replace(/"/g,'').trim());
+    const obj = {};
+    headers.forEach((h,i) => obj[h] = vals[i]||'');
+    const mapped = mapRow(obj);
+    if(!mapped.sl) mapped.sl = idx+1;
+    return mapped;
+  });
+  loadData(rows);
+}
+
+async function fetchGSheet() {
+  const url = document.getElementById('gsheet-url').value.trim();
+  if(!url) return;
+  let csvUrl = url;
+  // Convert sheet URL to CSV export
+  const idMatch = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+  if(idMatch) {
+    csvUrl = `https://docs.google.com/spreadsheets/d/${idMatch[1]}/export?format=csv&gid=0`;
+  }
+  showToast('Fetching from Google Sheet…');
+  try {
+    const res = await fetch(csvUrl);
+    if(!res.ok) throw new Error(`HTTP ${res.status}`);
+    const text = await res.text();
+    const blob = new Blob([text], {type:'text/csv'});
+    processFile(new File([blob],'sheet.csv',{type:'text/csv'}));
+  } catch(e) {
+    showToast('❌ Could not fetch. Make sure sheet is published/public.');
+  }
+}
+
+async function connectWebApp() {
+  const url = document.getElementById('webapp-url').value.trim();
+  if(!url) return;
+  webAppUrl = url;
+  localStorage.setItem('worksTrackerWebAppUrl', url);
+  showToast('Connecting to Apps Script Web App…');
+  await fetchFromWebApp();
+  document.getElementById('connect-success').classList.add('show');
+  if(autoRefreshTimer) clearInterval(autoRefreshTimer);
+  autoRefreshTimer = setInterval(fetchFromWebApp, 5*60*1000);
+}
+
+async function fetchFromWebApp() {
+  if(!webAppUrl) return;
+  try {
+    const res = await fetch(webAppUrl);
+    const data = await res.json();
+    if(data.error) throw new Error(data.error);
+    const rows = data.records.map((r,i) => {
+      const mapped = mapRow(r);
+      if(!mapped.sl) mapped.sl = i+1;
+      return mapped;
+    });
+    loadData(rows);
+    showToast(`✓ Synced ${rows.length} records from Google Sheet`);
+  } catch(e) {
+    showToast('❌ Sync failed: ' + e.message);
+  }
+}
+
+function loadSampleData() {
+  loadData(generateSampleData());
+  showTab('dashboard', document.querySelector('[onclick*="dashboard"]'));
+}
+
+function downloadTemplate() {
+  const cols = COLS.map(c=>COL_LABELS[c]);
+  const csv = cols.join(',') + '\n' + '1,Mayiladuthurai,Mangudi,Mangudi Colony,MYL/MAY/2024/0001,Roads,CC Road,CC Road at Mangudi,AS/MAY/24/001,01/04/2024,500000,TS/MAY/24/001,15/04/2024,480000,MGNREGS,RD Dept,0,TS';
+  const blob = new Blob([csv], {type:'text/csv'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'works_tracker_template.csv';
+  a.click();
+  showToast('Template downloaded');
+}
+
+/* ═══════════════════════════════════════════════
+   EXPORT
+═══════════════════════════════════════════════ */
+function exportData() {
+  if(!allData.length) { showToast('No data to export'); return; }
+  const cols = COLS.map(c=>COL_LABELS[c]);
+  const rows = (filteredData.length < allData.length ? filteredData : allData).map(r =>
+    COLS.map(c => `"${String(r[c]||'').replace(/"/g,'""')}"`).join(',')
+  );
+  const csv = [cols.join(','), ...rows].join('\n');
+  const blob = new Blob([csv], {type:'text/csv'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `works_export_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  showToast(`Exported ${rows.length} records`);
+}
+
+/* ═══════════════════════════════════════════════
+   UI HELPERS
+═══════════════════════════════════════════════ */
+function showTab(name, el) {
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(i=>i.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  if(el) el.classList.add('active');
+}
+
+function showBanner(id, msgId, msg) {
+  const el = document.getElementById(id);
+  if(msgId) document.getElementById(msgId).textContent = msg;
+  el.classList.add('show');
+}
+
+function hideBanner(id) { document.getElementById(id).classList.remove('show'); }
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 3000);
+}
+
+function refreshView() {
+  if(webAppUrl) fetchFromWebApp();
+  else renderAll();
+  showToast('View refreshed');
+}
+
+function showAppsScriptModal() {
+  document.getElementById('modal-backdrop').classList.add('open');
+}
+
+function closeModal(e, force=false) {
+  if(force || (e && e.target === document.getElementById('modal-backdrop')))
+    document.getElementById('modal-backdrop').classList.remove('open');
+}
+
+function copyCode() {
+  navigator.clipboard.writeText(APPS_SCRIPT).then(()=>showToast('✓ Apps Script code copied!')).catch(()=>showToast('Copy failed — select text manually'));
+}
+
+/* ═══════════════════════════════════════════════
+   INIT
+═══════════════════════════════════════════════ */
+window.onload = () => {
+  // Populate col mapping on load
+  const colMap = document.getElementById('col-mapping');
+  if(colMap) colMap.innerHTML = COLS.map(c=>`<span style="display:inline-flex;align-items:center;gap:4px;margin-right:8px"><span class="material-symbols-outlined" style="font-size:14px;color:var(--md-secondary)">check_circle</span>${COL_LABELS[c]}</span>`).join('');
+
+  // Check for saved webapp URL
+  if(webAppUrl) {
+    document.getElementById('webapp-url').value = webAppUrl;
+    document.getElementById('connect-success').classList.add('show');
+  }
+
+  // Init Firebase (real-time listener handles data loading)
+  initFirebase();
+
+  // Load sample data after a short delay only if Firebase returns nothing
+  setTimeout(() => {
+    if (!allData.length) {
+      loadSampleData();
+    }
+  }, 3500);
+};
+</script>
+</body>
+</html>
