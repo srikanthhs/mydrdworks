@@ -146,12 +146,13 @@
 
   /* ── Stage Chips ── */
   .stage-chip { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 500; }
-  .stage-TS { background: #E3F2FD; color: #1565C0; }
-  .stage-Work-in-Progress { background: #FFF8E1; color: #F57F17; }
-  .stage-Completed { background: #E8F5E9; color: #2E7D32; }
-  .stage-AS { background: #FBE9E7; color: #BF360C; }
-  .stage-Grounded { background: #F3E5F5; color: #6A1B9A; }
-  .stage-default { background: var(--md-surface-container-high); color: var(--md-on-surface-variant); }
+  .stage-TS                { background: #E3F2FD; color: #1565C0; }
+  .stage-Work-in-Progress  { background: #FFF8E1; color: #F57F17; }
+  .stage-Completed         { background: #E8F5E9; color: #2E7D32; }
+  .stage-AS                { background: #FBE9E7; color: #BF360C; }
+  .stage-Grounded          { background: #F3E5F5; color: #6A1B9A; }
+  .stage-Not-Started       { background: #ECEFF1; color: #455A64; }
+  .stage-default           { background: var(--md-surface-container-high); color: var(--md-on-surface-variant); }
 
   /* ── Pagination ── */
   .pagination { display: flex; align-items: center; gap: 8px; padding: 12px 0; justify-content: flex-end; }
@@ -596,9 +597,6 @@
 const FB_URL = 'https://mydrdworks-default-rtdb.asia-southeast1.firebasedatabase.app';
 
 let fbConnected    = false;
-let fbPollTimer    = null;
-let fbLastEtag     = null;   // track changes — only re-render when data actually changed
-const FB_POLL_MS   = 30000;  // poll every 30 seconds
 
 /* ── helpers ── */
 async function fbGet(path) {
@@ -619,7 +617,12 @@ async function fbPut(path, data) {
 
 /* ── apply fetched works data ── */
 function applyWorksData(val) {
-  if (!val) { setFbStatus('empty', 'DB empty — push data'); return; }
+  if (!val) {
+    setFbStatus('empty', 'DB empty — push data');
+    const t = document.getElementById('empty-state-title');
+    if (t) t.textContent = 'Firebase DB is empty';
+    return;
+  }
   const rows   = Array.isArray(val) ? val : Object.values(val);
   const mapped = rows.filter(Boolean).map((r, i) => {
     const m = mapRow(r);
@@ -653,11 +656,45 @@ async function fbPoll() {
   }
 }
 
-/* ── start polling ── */
+/* ── start polling with exponential backoff ── */
+const FB_POLL_INTERVALS = [30000, 60000, 120000, 300000]; // 30s→60s→2m→5m
+let fbRetryCount = 0;
+let fbPollTimer  = null;
+
+function schedulePoll(immediate = false) {
+  clearTimeout(fbPollTimer);
+  const delay = immediate ? 0 : FB_POLL_INTERVALS[Math.min(fbRetryCount, FB_POLL_INTERVALS.length - 1)];
+  fbPollTimer = setTimeout(async () => {
+    await fbPoll();
+    schedulePoll(); // schedule next after this one completes
+  }, delay);
+}
+
+async function fbPoll() {
+  try {
+    const [val, meta] = await Promise.all([
+      fbGet('works'),
+      fbGet('meta').catch(() => null)
+    ]);
+    fbRetryCount = 0; // reset backoff on success
+    applyWorksData(val);
+    if (meta && meta.lastUpdated) applyMetaTimestamp(meta.lastUpdated);
+  } catch(e) {
+    fbRetryCount++;
+    fbConnected = false;
+    const nextMs  = FB_POLL_INTERVALS[Math.min(fbRetryCount, FB_POLL_INTERVALS.length - 1)];
+    const nextMin = nextMs >= 60000 ? `${nextMs/60000}m` : `${nextMs/1000}s`;
+    setFbStatus('offline', `Offline · retry in ${nextMin}`);
+    if (fbRetryCount === 1) {
+      // Only log once, not on every retry
+      console.warn('Firebase unreachable — check firewall/network. Retrying with backoff.');
+    }
+  }
+}
+
 function initFirebase() {
   setFbStatus('connecting', 'Connecting…');
-  fbPoll();                                          // immediate first fetch
-  fbPollTimer = setInterval(fbPoll, FB_POLL_MS);    // then every 30 s
+  schedulePoll(true); // fire immediately
 }
 
 function applyMetaTimestamp(iso) {
@@ -717,9 +754,8 @@ async function pullFromFirebase(silent = false) {
     applyWorksData(val);
     if (meta && meta.lastUpdated) applyMetaTimestamp(meta.lastUpdated);
     if (!silent) showToast(`✓ Pulled ${allData.length} works from Firebase`);
-    // Reset poll timer so we don't double-fire immediately after manual pull
-    clearInterval(fbPollTimer);
-    fbPollTimer = setInterval(fbPoll, FB_POLL_MS);
+    fbRetryCount = 0;
+    schedulePoll(); // reset to normal 30s cadence
   } catch(e) {
     if (!silent) showToast('❌ Pull failed: ' + e.message);
   }
@@ -962,7 +998,15 @@ function updateRecordCount() {
    DASHBOARD
 ═══════════════════════════════════════════════ */
 function renderDashboard() {
-  if(!allData.length) { document.getElementById('stats-grid').innerHTML = '<div class="empty-state"><span class="material-symbols-outlined">inbox</span><h3>No data loaded</h3><p>Import data or load sample data to see the dashboard</p></div>'; return; }
+  if(!allData.length) {
+    document.getElementById('stats-grid').innerHTML = `
+      <div class="empty-state" style="grid-column:1/-1">
+        <span class="material-symbols-outlined">cloud_sync</span>
+        <h3 id="empty-state-title">Loading from Firebase…</h3>
+        <p>Data will appear once synced from the database</p>
+      </div>`;
+    return;
+  }
 
   // Stats
   const totalAS = allData.reduce((s,r)=>s+(parseFloat(r.asValue)||0),0);
@@ -1026,7 +1070,7 @@ function renderCharts() {
     schemeCounts[r.scheme||'Unknown'] = (schemeCounts[r.scheme||'Unknown']||0)+1;
   });
 
-  const stageColors = { 'Completed':'#43A047','Work-in-Progress':'#FB8C00','Grounded':'#8E24AA','TS':'#1E88E5','AS':'#E53935','Unknown':'#90A4AE' };
+  const stageColors = { 'Completed':'#43A047','Work-in-Progress':'#FB8C00','Grounded':'#8E24AA','TS':'#1E88E5','AS':'#E53935','Not Started':'#78909C','Unknown':'#90A4AE' };
 
   destroyChart('stageChart');
   destroyChart('blockChart');
@@ -1147,8 +1191,18 @@ function sortTable(key) {
 }
 
 function stageChip(stage) {
-  const cls = stage ? 'stage-'+stage.replace(/\s+/g,'-') : 'stage-default';
-  return `<span class="stage-chip ${cls}">${stage||'—'}</span>`;
+  if (!stage) return `<span class="stage-chip stage-default">—</span>`;
+  // Map to CSS class
+  const s = stage.trim();
+  let cls;
+  if (s === 'Completed')              cls = 'stage-Completed';
+  else if (s === 'Not Started')       cls = 'stage-Not-Started';
+  else if (s === 'Work-in-Progress')  cls = 'stage-Work-in-Progress';
+  else if (s === 'Grounded')          cls = 'stage-Grounded';
+  else if (s === 'TS')                cls = 'stage-TS';
+  else if (s === 'AS')                cls = 'stage-AS';
+  else                                cls = 'stage-Work-in-Progress'; // any other intermediate stage
+  return `<span class="stage-chip ${cls}">${s}</span>`;
 }
 
 function renderTable() {
@@ -1527,13 +1581,6 @@ window.onload = () => {
 
   // Init Firebase (real-time listener handles data loading)
   initFirebase();
-
-  // Load sample data after a short delay only if Firebase returns nothing
-  setTimeout(() => {
-    if (!allData.length) {
-      loadSampleData();
-    }
-  }, 3500);
 };
 </script>
 </body>
